@@ -18,20 +18,28 @@ export async function addPurchase(data: {
   unitCost: number;
   notes?: string;
 }) {
-  await prisma.$transaction(async (tx) => {
-    await tx.purchase.create({ data });
-    // Auto-increment stock
-    await tx.inventory.update({
-      where: { id: data.inventoryId },
-      data: { stockCount: { increment: data.quantity } },
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.purchase.create({ data });
+      // Auto-increment stock
+      await tx.inventory.update({
+        where: { id: data.inventoryId },
+        data: { stockCount: { increment: data.quantity } },
+      });
     });
-  });
 
-  revalidatePath("/purchases");
-  revalidatePath("/inventory");
+    revalidatePath("/purchases");
+    revalidatePath("/inventory");
+  } catch (err: any) {
+    return { error: err.message || "Failed to add purchase" };
+  }
 }
 
 export async function deletePurchase(id: string) {
-  await prisma.purchase.delete({ where: { id } });
-  revalidatePath("/purchases");
+  try {
+    await prisma.purchase.delete({ where: { id } });
+    revalidatePath("/purchases");
+  } catch (err: any) {
+    return { error: err.message || "Failed to delete purchase" };
+  }
 }

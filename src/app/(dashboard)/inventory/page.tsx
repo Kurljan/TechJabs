@@ -25,7 +25,7 @@ type Metrics = { totalProducts: number; totalValue: number; lowStockItems: numbe
 
 const CATEGORIES = ["Laptops", "Desktops", "Components", "Peripherals", "Networking", "Storage", "Software", "Other"];
 
-const emptyForm = { name: "", sku: "", category: "Laptops", stockCount: 0, price: 0 };
+const emptyForm = { name: "", sku: "", category: "Laptops", stockCount: "" as any, price: "" as any };
 
 export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -53,10 +53,12 @@ export default function InventoryPage() {
     setLoading(true);
     try {
       if (editTarget) {
-        await updateProduct(editTarget.id, { ...form, stockCount: Number(form.stockCount), price: Number(form.price) });
+        const res = await updateProduct(editTarget.id, { ...form, stockCount: Number(form.stockCount) || 0, price: Number(form.price) || 0 });
+        if (res?.error) throw new Error(res.error);
         setToast({ message: "Product updated successfully!", type: "success" });
       } else {
-        await addProduct({ ...form, stockCount: Number(form.stockCount), price: Number(form.price) });
+        const res = await addProduct({ ...form, stockCount: Number(form.stockCount) || 0, price: Number(form.price) || 0 });
+        if (res?.error) throw new Error(res.error);
         setToast({ message: "Product added successfully!", type: "success" });
       }
       setModalOpen(false);
@@ -210,7 +212,7 @@ export default function InventoryPage() {
               <input
                 type="number" min={0} required
                 value={form.stockCount}
-                onChange={(e) => setForm((f) => ({ ...f, stockCount: Number(e.target.value) }))}
+                onChange={(e) => setForm((f) => ({ ...f, stockCount: e.target.value }))}
                 className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary-500 text-sm"
               />
             </div>
@@ -219,7 +221,7 @@ export default function InventoryPage() {
               <input
                 type="number" min={0} step="0.01" required
                 value={form.price}
-                onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) }))}
+                onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
                 className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary-500 text-sm"
               />
             </div>

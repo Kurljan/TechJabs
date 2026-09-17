@@ -17,18 +17,27 @@ export async function addWarranty(data: {
   customerName?: string;
   expirationDate: string;
 }) {
-  await prisma.warranty.create({
-    data: {
-      ...data,
-      expirationDate: new Date(data.expirationDate),
-    },
-  });
-  revalidatePath("/warranties");
+  try {
+    await prisma.warranty.create({
+      data: {
+        ...data,
+        expirationDate: new Date(data.expirationDate),
+      },
+    });
+    revalidatePath("/warranties");
+  } catch (err: any) {
+    if (err.code === "P2002") return { error: "A warranty with this serial number already exists." };
+    return { error: err.message || "Failed to add warranty" };
+  }
 }
 
 export async function deleteWarranty(id: string) {
-  await prisma.warranty.delete({ where: { id } });
-  revalidatePath("/warranties");
+  try {
+    await prisma.warranty.delete({ where: { id } });
+    revalidatePath("/warranties");
+  } catch (err: any) {
+    return { error: err.message || "Failed to delete warranty" };
+  }
 }
 
 export async function getWarrantyMetrics() {

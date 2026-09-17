@@ -29,37 +29,41 @@ export async function addSale(data: {
     0
   );
 
-  // Create sale + items in a transaction, decrement stock
-  await prisma.$transaction(async (tx) => {
-    const sale = await tx.sale.create({
-      data: {
-        customerName: data.customerName,
-        notes: data.notes,
-        totalAmount,
-        saleItems: {
-          create: data.items.map((item) => ({
-            inventoryId: item.inventoryId,
-            quantity: item.quantity,
-            price: item.price,
-          })),
+  try {
+    // Create sale + items in a transaction, decrement stock
+    await prisma.$transaction(async (tx) => {
+      const sale = await tx.sale.create({
+        data: {
+          customerName: data.customerName,
+          notes: data.notes,
+          totalAmount,
+          saleItems: {
+            create: data.items.map((item) => ({
+              inventoryId: item.inventoryId,
+              quantity: item.quantity,
+              price: item.price,
+            })),
+          },
         },
-      },
+      });
+
+      // Decrement stock for each item
+      for (const item of data.items) {
+        await tx.inventory.update({
+          where: { id: item.inventoryId },
+          data: { stockCount: { decrement: item.quantity } },
+        });
+      }
+
+      return sale;
     });
 
-    // Decrement stock for each item
-    for (const item of data.items) {
-      await tx.inventory.update({
-        where: { id: item.inventoryId },
-        data: { stockCount: { decrement: item.quantity } },
-      });
-    }
-
-    return sale;
-  });
-
-  revalidatePath("/sales");
-  revalidatePath("/inventory");
-  revalidatePath("/receipts");
+    revalidatePath("/sales");
+    revalidatePath("/inventory");
+    revalidatePath("/receipts");
+  } catch (err: any) {
+    return { error: err.message || "Failed to add sale" };
+  }
 }
 
 export async function getSalesMetrics() {
