@@ -4,10 +4,11 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export async function getPurchases() {
-  return prisma.purchase.findMany({
+  const data = await prisma.purchase.findMany({
     include: { inventory: { select: { name: true } } },
     orderBy: { createdAt: "desc" },
   });
+  return JSON.parse(JSON.stringify(data));
 }
 
 export async function addPurchase(data: {

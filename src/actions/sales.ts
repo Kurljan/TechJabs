@@ -10,12 +10,13 @@ export interface SaleItemInput {
 }
 
 export async function getSales() {
-  return prisma.sale.findMany({
+  const data = await prisma.sale.findMany({
     include: {
       saleItems: { include: { inventory: { select: { name: true } } } },
     },
     orderBy: { createdAt: "desc" },
   });
+  return JSON.parse(JSON.stringify(data));
 }
 
 export async function addSale(data: {

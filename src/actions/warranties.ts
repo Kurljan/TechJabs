@@ -4,10 +4,11 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export async function getWarranties() {
-  return prisma.warranty.findMany({
+  const data = await prisma.warranty.findMany({
     include: { inventory: { select: { name: true } } },
     orderBy: { expirationDate: "asc" },
   });
+  return JSON.parse(JSON.stringify(data));
 }
 
 export async function addWarranty(data: {

@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export async function getProducts(search?: string) {
-  return prisma.inventory.findMany({
+  const data = await prisma.inventory.findMany({
     where: search
       ? {
           OR: [
@@ -16,6 +16,7 @@ export async function getProducts(search?: string) {
       : undefined,
     orderBy: { createdAt: "desc" },
   });
+  return JSON.parse(JSON.stringify(data));
 }
 
 export async function addProduct(data: {
