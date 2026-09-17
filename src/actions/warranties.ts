@@ -1,0 +1,45 @@
+"use server";
+
+import prisma from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+
+export async function getWarranties() {
+  return prisma.warranty.findMany({
+    include: { inventory: { select: { name: true } } },
+    orderBy: { expirationDate: "asc" },
+  });
+}
+
+export async function addWarranty(data: {
+  serialNumber: string;
+  inventoryId: string;
+  customerName?: string;
+  expirationDate: string;
+}) {
+  await prisma.warranty.create({
+    data: {
+      ...data,
+      expirationDate: new Date(data.expirationDate),
+    },
+  });
+  revalidatePath("/warranties");
+}
+
+export async function deleteWarranty(id: string) {
+  await prisma.warranty.delete({ where: { id } });
+  revalidatePath("/warranties");
+}
+
+export async function getWarrantyMetrics() {
+  const now = new Date();
+  const ninetyDays = new Date();
+  ninetyDays.setDate(ninetyDays.getDate() + 90);
+
+  const [activeWarranties, expiringSoon, expired] = await Promise.all([
+    prisma.warranty.count({ where: { expirationDate: { gte: now } } }),
+    prisma.warranty.count({ where: { expirationDate: { gte: now, lte: ninetyDays } } }),
+    prisma.warranty.count({ where: { expirationDate: { lt: now } } }),
+  ]);
+
+  return { activeWarranties, expiringSoon, expired };
+}

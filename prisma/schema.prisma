@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  role      String   @default("STAFF")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  sales     Sale[]
+}
+
+model Inventory {
+  id          String   @id @default(uuid())
+  name        String
+  sku         String   @unique
+  category    String
+  stockCount  Int      @default(0)
+  price       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  warranties  Warranty[]
+  saleItems   SaleItem[]
+  purchases   Purchase[]
+}
+
+model Warranty {
+  id              String   @id @default(uuid())
+  serialNumber    String   @unique
+  inventoryId     String
+  customerName    String?
+  expirationDate  DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  inventory       Inventory @relation(fields: [inventoryId], references: [id])
+}
+
+model Sale {
+  id            String     @id @default(uuid())
+  userId        String?
+  customerName  String?
+  totalAmount   Float
+  notes         String?
+  createdAt     DateTime   @default(now())
+  
+  // Relations
+  user          User?      @relation(fields: [userId], references: [id])
+  saleItems     SaleItem[]
+}
+
+model SaleItem {
+  id          String    @id @default(uuid())
+  saleId      String
+  inventoryId String
+  quantity    Int
+  price       Float
+  
+  // Relations
+  sale        Sale      @relation(fields: [saleId], references: [id])
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+}
+
+model Purchase {
+  id          String    @id @default(uuid())
+  supplier    String
+  inventoryId String
+  quantity    Int
+  unitCost    Float
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+}
