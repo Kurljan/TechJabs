@@ -31,7 +31,7 @@ export default function WarrantiesPage() {
     const [w, m, p] = await Promise.all([getWarranties(), getWarrantyMetrics(), getProducts()]);
     setWarranties(w as Warranty[]);
     setMetrics(m);
-    setProducts(p.map((p) => ({ id: p.id, name: p.name })));
+    setProducts((p as any[]).map((prod: any) => ({ id: prod.id, name: prod.name })));
   }, []);
 
   useEffect(() => { load(); }, [load]);

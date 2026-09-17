@@ -30,7 +30,7 @@ export default function PurchasesPage() {
   const load = useCallback(async () => {
     const [p, prods] = await Promise.all([getPurchases(), getProducts()]);
     setPurchases(p as Purchase[]);
-    setProducts(prods.map((p) => ({ id: p.id, name: p.name })));
+    setProducts((prods as any[]).map((p: any) => ({ id: p.id, name: p.name })));
   }, []);
 
   useEffect(() => { load(); }, [load]);
