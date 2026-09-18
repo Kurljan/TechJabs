@@ -30,8 +30,9 @@ export async function addProduct(data: {
     await prisma.inventory.create({ data });
     revalidatePath("/inventory");
   } catch (err: any) {
-    if (err.code === "P2002") return { error: "A product with this SKU already exists." };
-    return { error: err.message || "Failed to add product" };
+    console.error("addProduct error:", err);
+    if (err?.code === "P2002") return { error: "A product with this SKU already exists." };
+    return { error: err?.message || "Failed to add product" };
   }
 }
 
@@ -43,8 +44,9 @@ export async function updateProduct(
     await prisma.inventory.update({ where: { id }, data });
     revalidatePath("/inventory");
   } catch (err: any) {
-    if (err.code === "P2002") return { error: "A product with this SKU already exists." };
-    return { error: err.message || "Failed to update product" };
+    console.error("updateProduct error:", err);
+    if (err?.code === "P2002") return { error: "A product with this SKU already exists." };
+    return { error: err?.message || "Failed to update product" };
   }
 }
 

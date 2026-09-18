@@ -178,7 +178,7 @@ export default function InventoryPage() {
       </div>
 
       {/* Add/Edit Modal */}
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? "Edit Product" : "Add New Product"}>
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? "Edit Product" : "Add New Product (v2)"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           {[
             { label: "Product Name", key: "name", type: "text", placeholder: "e.g. Ryzen 5 5600X" },
