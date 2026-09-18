@@ -4,10 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && prisma db push && next build",
     "start": "next start",
-    "lint": "eslint",
-    "postinstall": "prisma generate && prisma db push"
+    "lint": "eslint"
   },
   "dependencies": {
     "@neon/config": "^1.7.0",
