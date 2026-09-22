@@ -1,4 +1,4 @@
-import { Shield } from "lucide-react";
+import Image from "next/image";
 
 export function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -29,9 +29,15 @@ export function XIcon(props: React.SVGProps<SVGSVGElement>) {
 
 export function LogoPlaceholder({ className = "" }: { className?: string }) {
   return (
-    <div className={`flex flex-col items-center justify-center text-primary-600 ${className}`}>
-      <Shield className="w-8 h-8 mb-1" />
-      <span className="font-bold text-xs">TechSolve</span>
+    <div className={`flex items-center justify-center ${className}`}>
+      <Image
+        src="/techSolveLogo.svg"
+        alt="TechSolve Logo"
+        width={80}
+        height={80}
+        className="object-contain w-full h-full"
+        priority
+      />
     </div>
   );
 }
