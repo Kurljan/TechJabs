@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import { User, LogOut, ChevronDown, Settings } from "lucide-react";
 
@@ -10,7 +11,6 @@ export function MobileHeader() {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -53,7 +53,6 @@ export function MobileHeader() {
           className="flex items-center gap-1.5 py-1 px-2 rounded-xl hover:bg-slate-100 transition-colors focus:outline-none"
           aria-label="User menu"
         >
-          {/* Avatar circle */}
           <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-bold ring-2 ring-primary-100">
             {initials}
           </div>
@@ -62,10 +61,8 @@ export function MobileHeader() {
           />
         </button>
 
-        {/* Dropdown Menu */}
         {open && (
           <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50">
-            {/* User info */}
             <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
               <p className="text-sm font-semibold text-slate-800 truncate">{name}</p>
               {email && (
@@ -73,38 +70,30 @@ export function MobileHeader() {
               )}
             </div>
 
-            {/* Profile option */}
-            <button
-              onClick={() => {
-                setOpen(false);
-                window.location.href = "/profile";
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+            <Link
+              href="/profile"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
             >
               <div className="w-7 h-7 rounded-lg bg-primary-50 flex items-center justify-center">
                 <User className="w-4 h-4 text-primary-600" />
               </div>
               <span>My Profile</span>
-            </button>
+            </Link>
 
-            {/* Settings option */}
-            <button
-              onClick={() => {
-                setOpen(false);
-                window.location.href = "/settings";
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+            <Link
+              href="/settings"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
             >
               <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center">
                 <Settings className="w-4 h-4 text-slate-500" />
               </div>
               <span>Settings</span>
-            </button>
+            </Link>
 
-            {/* Divider */}
             <div className="h-px bg-slate-100 mx-4" />
 
-            {/* Logout */}
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
