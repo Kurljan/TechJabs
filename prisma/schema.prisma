@@ -39,8 +39,10 @@ model Inventory {
 model Warranty {
   id              String   @id @default(uuid())
   serialNumber    String   @unique
+  warrantyType    String   @default("PURCHASE")  // "PURCHASE" | "SALE"
   inventoryId     String
   customerName    String?
+  supplierName    String?
   expirationDate  DateTime
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

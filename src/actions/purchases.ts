@@ -65,3 +65,23 @@ export async function getWarrantyEligibleProducts() {
   return JSON.parse(JSON.stringify(data));
 }
 
+/** Products that have at least one purchase from a supplier — for Purchase Warranties. */
+export async function getPurchaseProducts() {
+  const data = await prisma.inventory.findMany({
+    where: { purchases: { some: {} } },
+    select: { id: true, name: true, sku: true },
+    orderBy: { name: "asc" },
+  });
+  return JSON.parse(JSON.stringify(data));
+}
+
+/** Products that have been sold at least once — for Sales Warranties. */
+export async function getSaleProducts() {
+  const data = await prisma.inventory.findMany({
+    where: { saleItems: { some: {} } },
+    select: { id: true, name: true, sku: true },
+    orderBy: { name: "asc" },
+  });
+  return JSON.parse(JSON.stringify(data));
+}
+

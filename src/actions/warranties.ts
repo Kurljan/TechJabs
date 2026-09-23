@@ -3,8 +3,9 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-export async function getWarranties() {
+export async function getWarranties(type?: "PURCHASE" | "SALE") {
   const data = await prisma.warranty.findMany({
+    where: type ? { warrantyType: type } : undefined,
     include: { inventory: { select: { name: true } } },
     orderBy: { expirationDate: "asc" },
   });
@@ -13,8 +14,10 @@ export async function getWarranties() {
 
 export async function addWarranty(data: {
   serialNumber: string;
+  warrantyType: "PURCHASE" | "SALE";
   inventoryId: string;
   customerName?: string;
+  supplierName?: string;
   expirationDate: string;
 }) {
   try {
@@ -42,16 +45,19 @@ export async function deleteWarranty(id: string) {
   }
 }
 
-export async function getWarrantyMetrics() {
+export async function getWarrantyMetrics(type?: "PURCHASE" | "SALE") {
   const now = new Date();
   const ninetyDays = new Date();
   ninetyDays.setDate(ninetyDays.getDate() + 90);
 
+  const where = type ? { warrantyType: type } : {};
+
   const [activeWarranties, expiringSoon, expired] = await Promise.all([
-    prisma.warranty.count({ where: { expirationDate: { gte: now } } }),
-    prisma.warranty.count({ where: { expirationDate: { gte: now, lte: ninetyDays } } }),
-    prisma.warranty.count({ where: { expirationDate: { lt: now } } }),
+    prisma.warranty.count({ where: { ...where, expirationDate: { gte: now } } }),
+    prisma.warranty.count({ where: { ...where, expirationDate: { gte: now, lte: ninetyDays } } }),
+    prisma.warranty.count({ where: { ...where, expirationDate: { lt: now } } }),
   ]);
 
   return { activeWarranties, expiringSoon, expired };
 }
+
