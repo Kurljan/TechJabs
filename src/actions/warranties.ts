@@ -25,6 +25,7 @@ export async function addWarranty(data: {
       },
     });
     revalidatePath("/warranties");
+    revalidatePath("/dashboard");
   } catch (err: any) {
     if (err.code === "P2002") return { error: "A warranty with this serial number already exists." };
     return { error: err.message || "Failed to add warranty" };
@@ -35,6 +36,7 @@ export async function deleteWarranty(id: string) {
   try {
     await prisma.warranty.delete({ where: { id } });
     revalidatePath("/warranties");
+    revalidatePath("/dashboard");
   } catch (err: any) {
     return { error: err.message || "Failed to delete warranty" };
   }

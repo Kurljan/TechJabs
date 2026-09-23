@@ -29,6 +29,7 @@ export async function addProduct(data: {
   try {
     await prisma.inventory.create({ data });
     revalidatePath("/inventory");
+    revalidatePath("/dashboard");
   } catch (err: any) {
     console.error("addProduct error:", err);
     if (err?.code === "P2002") return { error: "A product with this SKU already exists." };
@@ -43,6 +44,7 @@ export async function updateProduct(
   try {
     await prisma.inventory.update({ where: { id }, data });
     revalidatePath("/inventory");
+    revalidatePath("/dashboard");
   } catch (err: any) {
     console.error("updateProduct error:", err);
     if (err?.code === "P2002") return { error: "A product with this SKU already exists." };
@@ -58,6 +60,7 @@ export async function deleteProduct(id: string) {
     await prisma.purchase.deleteMany({ where: { inventoryId: id } });
     await prisma.inventory.delete({ where: { id } });
     revalidatePath("/inventory");
+    revalidatePath("/dashboard");
   } catch (err: any) {
     return { error: err.message || "Failed to delete product" };
   }

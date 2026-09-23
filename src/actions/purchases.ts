@@ -30,6 +30,7 @@ export async function addPurchase(data: {
 
     revalidatePath("/purchases");
     revalidatePath("/inventory");
+    revalidatePath("/dashboard");
   } catch (err: any) {
     return { error: err.message || "Failed to add purchase" };
   }

@@ -61,6 +61,7 @@ export async function addSale(data: {
     revalidatePath("/sales");
     revalidatePath("/inventory");
     revalidatePath("/receipts");
+    revalidatePath("/dashboard");
   } catch (err: any) {
     return { error: err.message || "Failed to add sale" };
   }
