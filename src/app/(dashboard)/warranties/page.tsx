@@ -29,8 +29,9 @@ type Warranty = {
 
 type Metrics = { activeWarranties: number; expiringSoon: number; expired: number };
 type Product = { id: string; name: string; sku: string };
+type SaleItemProduct = { id: string; inventory: Product; sale: { customerName: string | null; createdAt: string } };
 
-const EMPTY_FORM = { serialNumber: "", inventoryId: "", customerName: "", supplierName: "", expirationDate: "" };
+const EMPTY_FORM = { serialNumber: "", inventoryId: "", customerName: "", supplierName: "", expirationDate: "", selectedSaleItemId: "" };
 
 export default function WarrantiesPage() {
   const [activeTab, setActiveTab] = useState<WarrantyType>("PURCHASE");
@@ -41,7 +42,7 @@ export default function WarrantiesPage() {
   const [purchaseMetrics, setPurchaseMetrics] = useState<Metrics>({ activeWarranties: 0, expiringSoon: 0, expired: 0 });
   const [saleMetrics, setSaleMetrics] = useState<Metrics>({ activeWarranties: 0, expiringSoon: 0, expired: 0 });
   const [purchaseProducts, setPurchaseProducts] = useState<Product[]>([]);
-  const [saleProducts, setSaleProducts] = useState<Product[]>([]);
+  const [saleProducts, setSaleProducts] = useState<SaleItemProduct[]>([]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -62,7 +63,7 @@ export default function WarrantiesPage() {
     setPurchaseMetrics(pm);
     setSaleMetrics(sm);
     setPurchaseProducts(pp as Product[]);
-    setSaleProducts(sp as Product[]);
+    setSaleProducts(sp as SaleItemProduct[]);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -293,14 +294,36 @@ export default function WarrantiesPage() {
             </label>
             <select
               required
-              value={form.inventoryId}
-              onChange={(e) => setForm((f) => ({ ...f, inventoryId: e.target.value }))}
+              value={isPurchase ? form.inventoryId : form.selectedSaleItemId || ""}
+              onChange={(e) => {
+                if (isPurchase) {
+                  setForm((f) => ({ ...f, inventoryId: e.target.value }));
+                } else {
+                  const selectedSaleItem = (products as SaleItemProduct[]).find(p => p.id === e.target.value);
+                  if (selectedSaleItem) {
+                    setForm((f) => ({ 
+                      ...f, 
+                      selectedSaleItemId: selectedSaleItem.id,
+                      inventoryId: selectedSaleItem.inventory.id,
+                      customerName: selectedSaleItem.sale.customerName || ""
+                    }));
+                  } else {
+                    setForm((f) => ({ ...f, selectedSaleItemId: "", inventoryId: "", customerName: "" }));
+                  }
+                }
+              }}
               className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary-500 text-sm"
             >
               <option value="">Select a product...</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>
-              ))}
+              {products.map((p: any) => {
+                if (isPurchase) {
+                  return <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>;
+                } else {
+                  const customer = p.sale.customerName ? `Sold to: ${p.sale.customerName}` : 'Unknown Customer';
+                  const date = new Date(p.sale.createdAt).toLocaleDateString();
+                  return <option key={p.id} value={p.id}>{p.inventory.name} ({customer} on {date})</option>;
+                }
+              })}
             </select>
           </div>
 

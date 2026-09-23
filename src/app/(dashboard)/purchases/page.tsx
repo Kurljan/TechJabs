@@ -23,7 +23,18 @@ export default function PurchasesPage() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ supplier: "", inventoryId: "", quantity: 1, unitCost: 0, notes: "" });
+  const [isNewProduct, setIsNewProduct] = useState(false);
+  const [form, setForm] = useState({ 
+    supplier: "", 
+    inventoryId: "", 
+    quantity: 1, 
+    unitCost: 0, 
+    notes: "",
+    newProductName: "",
+    newProductSku: "",
+    newProductCategory: "",
+    newProductPrice: 0,
+  });
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
@@ -39,13 +50,33 @@ export default function PurchasesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.inventoryId) { setToast({ message: "Please select a product.", type: "error" }); return; }
+    if (!isNewProduct && !form.inventoryId) { setToast({ message: "Please select a product.", type: "error" }); return; }
+    if (isNewProduct && (!form.newProductName || !form.newProductSku || !form.newProductCategory || form.newProductPrice < 0)) {
+      setToast({ message: "Please fill out all new product details.", type: "error" }); return;
+    }
+    
     setLoading(true);
     try {
-      await addPurchase({ ...form, quantity: Number(form.quantity), unitCost: Number(form.unitCost) });
+      const payload = {
+        supplier: form.supplier,
+        quantity: Number(form.quantity),
+        unitCost: Number(form.unitCost),
+        notes: form.notes,
+        ...(isNewProduct 
+          ? { newProduct: { name: form.newProductName, sku: form.newProductSku, category: form.newProductCategory, price: Number(form.newProductPrice) } }
+          : { inventoryId: form.inventoryId })
+      };
+      
+      const res = await addPurchase(payload);
+      if (res?.error) {
+        setToast({ message: res.error, type: "error" });
+        return;
+      }
+      
       setToast({ message: "Purchase recorded! Stock updated.", type: "success" });
       setModalOpen(false);
-      setForm({ supplier: "", inventoryId: "", quantity: 1, unitCost: 0, notes: "" });
+      setForm({ supplier: "", inventoryId: "", quantity: 1, unitCost: 0, notes: "", newProductName: "", newProductSku: "", newProductCategory: "", newProductPrice: 0 });
+      setIsNewProduct(false);
       load();
     } catch (err: any) {
       setToast({ message: err?.message ?? "Failed to record purchase", type: "error" });
@@ -136,13 +167,50 @@ export default function PurchasesPage() {
             <input required type="text" placeholder="e.g. PC Parts Hub" value={form.supplier} onChange={(e) => setForm((f) => ({ ...f, supplier: e.target.value }))}
               className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:ring-2 focus:ring-primary-500 text-sm" />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Product</label>
-            <select required value={form.inventoryId} onChange={(e) => setForm((f) => ({ ...f, inventoryId: e.target.value }))}
-              className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:ring-2 focus:ring-primary-500 text-sm">
-              <option value="">Select a product...</option>
-              {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-sm font-medium text-slate-700">Product</label>
+              <button 
+                type="button"
+                onClick={() => setIsNewProduct(!isNewProduct)}
+                className="text-xs font-semibold text-primary-600 hover:text-primary-700"
+              >
+                {isNewProduct ? "Select Existing Product" : "+ Add New Product"}
+              </button>
+            </div>
+            
+            {!isNewProduct ? (
+              <select required={!isNewProduct} value={form.inventoryId} onChange={(e) => setForm((f) => ({ ...f, inventoryId: e.target.value }))}
+                className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-primary-500 text-sm">
+                <option value="">Select a product...</option>
+                {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Product Name</label>
+                  <input required={isNewProduct} type="text" placeholder="e.g. RTX 4090" value={form.newProductName} onChange={(e) => setForm((f) => ({ ...f, newProductName: e.target.value }))}
+                    className="block w-full px-3 py-2 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-primary-500 text-sm" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">SKU</label>
+                    <input required={isNewProduct} type="text" placeholder="e.g. GPU-4090-001" value={form.newProductSku} onChange={(e) => setForm((f) => ({ ...f, newProductSku: e.target.value }))}
+                      className="block w-full px-3 py-2 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-primary-500 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Category</label>
+                    <input required={isNewProduct} type="text" placeholder="e.g. Components" value={form.newProductCategory} onChange={(e) => setForm((f) => ({ ...f, newProductCategory: e.target.value }))}
+                      className="block w-full px-3 py-2 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-primary-500 text-sm" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Retail Selling Price (₱)</label>
+                  <input required={isNewProduct} type="number" min={0} step="0.01" value={form.newProductPrice} onChange={(e) => setForm((f) => ({ ...f, newProductPrice: Number(e.target.value) }))}
+                    className="block w-full px-3 py-2 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-primary-500 text-sm" />
+                </div>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

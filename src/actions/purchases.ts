@@ -13,17 +13,36 @@ export async function getPurchases() {
 
 export async function addPurchase(data: {
   supplier: string;
-  inventoryId: string;
+  inventoryId?: string;
+  newProduct?: { name: string; sku: string; category: string; price: number };
   quantity: number;
   unitCost: number;
   notes?: string;
 }) {
   try {
     await prisma.$transaction(async (tx) => {
-      await tx.purchase.create({ data });
+      let invId = data.inventoryId;
+      if (data.newProduct) {
+        const p = await tx.inventory.create({
+          data: { ...data.newProduct, stockCount: 0 },
+        });
+        invId = p.id;
+      }
+      
+      if (!invId) throw new Error("No inventory item specified.");
+
+      await tx.purchase.create({ 
+        data: {
+          supplier: data.supplier,
+          inventoryId: invId,
+          quantity: data.quantity,
+          unitCost: data.unitCost,
+          notes: data.notes,
+        }
+      });
       // Auto-increment stock
       await tx.inventory.update({
-        where: { id: data.inventoryId },
+        where: { id: invId },
         data: { stockCount: { increment: data.quantity } },
       });
     });
@@ -32,6 +51,7 @@ export async function addPurchase(data: {
     revalidatePath("/inventory");
     revalidatePath("/dashboard");
   } catch (err: any) {
+    if (err.code === "P2002") return { error: "A product with this SKU already exists." };
     return { error: err.message || "Failed to add purchase" };
   }
 }
@@ -75,13 +95,16 @@ export async function getPurchaseProducts() {
   return JSON.parse(JSON.stringify(data));
 }
 
-/** Products that have been sold at least once — for Sales Warranties. */
+/** Products that have been sold — for Sales Warranties. Returns a list of past sales with customer names. */
 export async function getSaleProducts() {
-  const data = await prisma.inventory.findMany({
-    where: { saleItems: { some: {} } },
-    select: { id: true, name: true, sku: true },
-    orderBy: { name: "asc" },
+  const data = await prisma.saleItem.findMany({
+    include: {
+      inventory: { select: { id: true, name: true, sku: true } },
+      sale: { select: { customerName: true, createdAt: true } },
+    },
+    orderBy: { sale: { createdAt: "desc" } },
   });
   return JSON.parse(JSON.stringify(data));
 }
+
 
