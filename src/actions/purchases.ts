@@ -43,3 +43,20 @@ export async function deletePurchase(id: string) {
     return { error: err.message || "Failed to delete purchase" };
   }
 }
+
+/**
+ * Returns only inventory items that have at least one purchase record.
+ * Used in the warranty form to prevent registering a warranty for items
+ * that have never been purchased.
+ */
+export async function getPurchasedProducts() {
+  const data = await prisma.inventory.findMany({
+    where: {
+      purchases: { some: {} },
+    },
+    select: { id: true, name: true, sku: true },
+    orderBy: { name: "asc" },
+  });
+  return JSON.parse(JSON.stringify(data));
+}
+

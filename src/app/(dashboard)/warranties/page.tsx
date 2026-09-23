@@ -5,7 +5,7 @@ import { CheckCircle2, AlertCircle, XCircle, Plus, Trash2 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import Toast from "@/components/ui/Toast";
 import { getWarranties, addWarranty, deleteWarranty, getWarrantyMetrics } from "@/actions/warranties";
-import { getProducts } from "@/actions/inventory";
+import { getPurchasedProducts } from "@/actions/purchases";
 
 type Warranty = {
   id: string;
@@ -16,7 +16,7 @@ type Warranty = {
 };
 
 type Metrics = { activeWarranties: number; expiringSoon: number; expired: number };
-type Product = { id: string; name: string };
+type Product = { id: string; name: string; sku: string };
 
 export default function WarrantiesPage() {
   const [warranties, setWarranties] = useState<Warranty[]>([]);
@@ -28,10 +28,10 @@ export default function WarrantiesPage() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const load = useCallback(async () => {
-    const [w, m, p] = await Promise.all([getWarranties(), getWarrantyMetrics(), getProducts()]);
+    const [w, m, p] = await Promise.all([getWarranties(), getWarrantyMetrics(), getPurchasedProducts()]);
     setWarranties(w as Warranty[]);
     setMetrics(m);
-    setProducts((p as any[]).map((prod: any) => ({ id: prod.id, name: prod.name })));
+    setProducts(p as Product[]);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -78,9 +78,34 @@ export default function WarrantiesPage() {
         <p className="text-slate-500 text-[15px]">Track and manage product warranties</p>
       </div>
 
-      <button onClick={() => setModalOpen(true)} className="w-full bg-primary-600 text-white rounded-xl py-3.5 font-medium hover:bg-primary-700 transition-colors shadow-sm flex items-center justify-center space-x-2">
+      <button
+        onClick={() => {
+          if (products.length === 0) {
+            setToast({ message: "No purchased products found. Record a purchase first.", type: "error" });
+            return;
+          }
+          setModalOpen(true);
+        }}
+        className="w-full bg-primary-600 text-white rounded-xl py-3.5 font-medium hover:bg-primary-700 transition-colors shadow-sm flex items-center justify-center space-x-2"
+      >
         <Plus className="w-5 h-5" /><span>Add Warranty</span>
       </button>
+
+      {/* Informational banner when no purchased products exist */}
+      {products.length === 0 && (
+        <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-2xl p-4">
+          <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-900">No purchased products yet</p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Warranties can only be added for items that have a purchase record.
+              Go to{" "}
+              <a href="/purchases" className="underline font-medium hover:text-amber-900">Purchase Records</a>{" "}
+              to log your first purchase.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Metrics */}
       <div className="space-y-4">
@@ -153,9 +178,12 @@ export default function WarrantiesPage() {
             <label className="block text-sm font-medium text-slate-700 mb-1">Product</label>
             <select required value={form.inventoryId} onChange={(e) => setForm((f) => ({ ...f, inventoryId: e.target.value }))}
               className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary-500 text-sm">
-              <option value="">Select a product...</option>
-              {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              <option value="">Select a purchased product...</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>
+              ))}
             </select>
+            <p className="text-xs text-slate-400 mt-1">Only products with a purchase record are listed.</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Serial Number</label>
