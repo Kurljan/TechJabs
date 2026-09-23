@@ -5,7 +5,7 @@ import { CheckCircle2, AlertCircle, XCircle, Plus, Trash2 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import Toast from "@/components/ui/Toast";
 import { getWarranties, addWarranty, deleteWarranty, getWarrantyMetrics } from "@/actions/warranties";
-import { getPurchasedProducts } from "@/actions/purchases";
+import { getWarrantyEligibleProducts } from "@/actions/purchases";
 
 type Warranty = {
   id: string;
@@ -28,7 +28,7 @@ export default function WarrantiesPage() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const load = useCallback(async () => {
-    const [w, m, p] = await Promise.all([getWarranties(), getWarrantyMetrics(), getPurchasedProducts()]);
+    const [w, m, p] = await Promise.all([getWarranties(), getWarrantyMetrics(), getWarrantyEligibleProducts()]);
     setWarranties(w as Warranty[]);
     setMetrics(m);
     setProducts(p as Product[]);
@@ -98,10 +98,12 @@ export default function WarrantiesPage() {
           <div>
             <p className="text-sm font-semibold text-amber-900">No purchased products yet</p>
             <p className="text-xs text-amber-700 mt-0.5">
-              Warranties can only be added for items that have a purchase record.
+              Warranties can only be added for items that have been <strong>purchased</strong> or <strong>sold</strong> at least once.
               Go to{" "}
               <a href="/purchases" className="underline font-medium hover:text-amber-900">Purchase Records</a>{" "}
-              to log your first purchase.
+              or{" "}
+              <a href="/sales" className="underline font-medium hover:text-amber-900">Sales</a>{" "}
+              to record a transaction first.
             </p>
           </div>
         </div>
@@ -178,12 +180,12 @@ export default function WarrantiesPage() {
             <label className="block text-sm font-medium text-slate-700 mb-1">Product</label>
             <select required value={form.inventoryId} onChange={(e) => setForm((f) => ({ ...f, inventoryId: e.target.value }))}
               className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary-500 text-sm">
-              <option value="">Select a purchased product...</option>
+              <option value="">Select a product...</option>
               {products.map((p) => (
                 <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>
               ))}
             </select>
-            <p className="text-xs text-slate-400 mt-1">Only products with a purchase record are listed.</p>
+            <p className="text-xs text-slate-400 mt-1">Only products that have been purchased or sold are listed.</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Serial Number</label>

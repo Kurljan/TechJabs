@@ -46,14 +46,18 @@ export async function deletePurchase(id: string) {
 }
 
 /**
- * Returns only inventory items that have at least one purchase record.
- * Used in the warranty form to prevent registering a warranty for items
- * that have never been purchased.
+ * Returns inventory items eligible for warranty registration:
+ * any item that has been transacted — either purchased from a supplier
+ * OR sold to a customer. This prevents registering warranties for
+ * phantom inventory that has never moved through the system.
  */
-export async function getPurchasedProducts() {
+export async function getWarrantyEligibleProducts() {
   const data = await prisma.inventory.findMany({
     where: {
-      purchases: { some: {} },
+      OR: [
+        { purchases: { some: {} } },   // received via Purchase Records
+        { saleItems: { some: {} } },   // sold via Sales
+      ],
     },
     select: { id: true, name: true, sku: true },
     orderBy: { name: "asc" },
