@@ -28,21 +28,31 @@ type Warranty = {
 };
 
 type Metrics = { activeWarranties: number; expiringSoon: number; expired: number };
-type Product = { id: string; name: string; sku: string };
-type SaleItemProduct = { id: string; inventory: Product; sale: { customerName: string | null; createdAt: string } };
+type PurchaseProduct = { id: string; name: string; sku: string };
+type SaleProduct = {
+  id: string; // saleItem.id
+  inventory: { id: string; name: string; sku: string };
+  sale: { customerName: string | null; createdAt: string };
+};
 
-const EMPTY_FORM = { serialNumber: "", inventoryId: "", customerName: "", supplierName: "", expirationDate: "", selectedSaleItemId: "" };
+const EMPTY_FORM = {
+  serialNumber: "",
+  inventoryId: "",
+  customerName: "",
+  supplierName: "",
+  expirationDate: "",
+  selectedSaleItemId: "",
+};
 
 export default function WarrantiesPage() {
   const [activeTab, setActiveTab] = useState<WarrantyType>("PURCHASE");
 
-  // Per-type state
   const [purchaseWarranties, setPurchaseWarranties] = useState<Warranty[]>([]);
   const [saleWarranties, setSaleWarranties] = useState<Warranty[]>([]);
   const [purchaseMetrics, setPurchaseMetrics] = useState<Metrics>({ activeWarranties: 0, expiringSoon: 0, expired: 0 });
   const [saleMetrics, setSaleMetrics] = useState<Metrics>({ activeWarranties: 0, expiringSoon: 0, expired: 0 });
-  const [purchaseProducts, setPurchaseProducts] = useState<Product[]>([]);
-  const [saleProducts, setSaleProducts] = useState<SaleItemProduct[]>([]);
+  const [purchaseProducts, setPurchaseProducts] = useState<PurchaseProduct[]>([]);
+  const [saleProducts, setSaleProducts] = useState<SaleProduct[]>([]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -62,15 +72,18 @@ export default function WarrantiesPage() {
     setSaleWarranties(sw as Warranty[]);
     setPurchaseMetrics(pm);
     setSaleMetrics(sm);
-    setPurchaseProducts(pp as Product[]);
-    setSaleProducts(sp as SaleItemProduct[]);
+    setPurchaseProducts(pp as PurchaseProduct[]);
+    setSaleProducts(sp as SaleProduct[]);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const warranties = activeTab === "PURCHASE" ? purchaseWarranties : saleWarranties;
-  const metrics = activeTab === "PURCHASE" ? purchaseMetrics : saleMetrics;
-  const products = activeTab === "PURCHASE" ? purchaseProducts : saleProducts;
+  const isPurchase = activeTab === "PURCHASE";
+  const warranties = isPurchase ? purchaseWarranties : saleWarranties;
+  const metrics = isPurchase ? purchaseMetrics : saleMetrics;
+  const hasSaleProducts = saleProducts.length > 0;
+  const hasPurchaseProducts = purchaseProducts.length > 0;
+  const hasProducts = isPurchase ? hasPurchaseProducts : hasSaleProducts;
 
   const getStatus = (expDate: Date) => {
     const days = Math.ceil((new Date(expDate).getTime() - Date.now()) / 86400000);
@@ -80,8 +93,8 @@ export default function WarrantiesPage() {
   };
 
   const openModal = () => {
-    if (products.length === 0) {
-      const msg = activeTab === "PURCHASE"
+    if (!hasProducts) {
+      const msg = isPurchase
         ? "No purchased products found. Add a Purchase Record first."
         : "No sold products found. Record a Sale first.";
       setToast({ message: msg, type: "error" });
@@ -91,16 +104,33 @@ export default function WarrantiesPage() {
     setModalOpen(true);
   };
 
+  const handleSaleProductSelect = (saleItemId: string) => {
+    const item = saleProducts.find((p) => p.id === saleItemId);
+    if (item) {
+      setForm((f) => ({
+        ...f,
+        selectedSaleItemId: item.id,
+        inventoryId: item.inventory.id,
+        customerName: item.sale.customerName ?? "",
+      }));
+    } else {
+      setForm((f) => ({ ...f, selectedSaleItemId: "", inventoryId: "", customerName: "" }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.inventoryId) { setToast({ message: "Please select a product.", type: "error" }); return; }
+    if (!form.inventoryId) {
+      setToast({ message: "Please select a product.", type: "error" });
+      return;
+    }
     setSubmitting(true);
     try {
       const result = await addWarranty({ ...form, warrantyType: activeTab });
       if (result?.error) {
         setToast({ message: result.error, type: "error" });
       } else {
-        setToast({ message: `${activeTab === "PURCHASE" ? "Purchase" : "Sales"} warranty added!`, type: "success" });
+        setToast({ message: `${isPurchase ? "Purchase" : "Sales"} warranty added!`, type: "success" });
         setModalOpen(false);
         load();
       }
@@ -117,8 +147,6 @@ export default function WarrantiesPage() {
     setToast({ message: "Warranty deleted.", type: "success" });
     load();
   };
-
-  const isPurchase = activeTab === "PURCHASE";
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -169,7 +197,7 @@ export default function WarrantiesPage() {
           <p className="text-xs opacity-80">
             {isPurchase
               ? "Warranties received from suppliers when the store purchases stock. Records the supplier and protects the store."
-              : "Warranties issued to customers when the store sells a product. Records the customer and the coverage period."}
+              : "Warranties issued to customers when the store sells a product. Select the sale record — the customer name fills in automatically."}
           </p>
         </div>
       </div>
@@ -186,7 +214,7 @@ export default function WarrantiesPage() {
       </button>
 
       {/* No products banner */}
-      {products.length === 0 && (
+      {!hasProducts && (
         <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-2xl p-4">
           <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
           <div>
@@ -195,8 +223,8 @@ export default function WarrantiesPage() {
             </p>
             <p className="text-xs text-amber-700 mt-0.5">
               {isPurchase
-                ? <>Go to <a href="/purchases" className="underline font-medium">Purchase Records</a> to log a purchase first.</>
-                : <>Go to <a href="/sales" className="underline font-medium">Sales</a> to record a sale first.</>}
+                ? <><a href="/purchases" className="underline font-medium">Add a Purchase Record</a> first to register a supplier warranty.</>
+                : <><a href="/sales" className="underline font-medium">Record a Sale</a> first to issue a customer warranty.</>}
             </p>
           </div>
         </div>
@@ -287,44 +315,54 @@ export default function WarrantiesPage() {
             {isPurchase ? "Store Purchase Warranty — from supplier to store" : "Store Sales Warranty — from store to customer"}
           </div>
 
-          {/* Product */}
+          {/* Product selector */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              {isPurchase ? "Purchased Product" : "Sold Product"}
+              {isPurchase ? "Purchased Product" : "Sold Product / Sale Record"}
             </label>
-            <select
-              required
-              value={isPurchase ? form.inventoryId : form.selectedSaleItemId || ""}
-              onChange={(e) => {
-                if (isPurchase) {
-                  setForm((f) => ({ ...f, inventoryId: e.target.value }));
-                } else {
-                  const selectedSaleItem = (products as SaleItemProduct[]).find(p => p.id === e.target.value);
-                  if (selectedSaleItem) {
-                    setForm((f) => ({ 
-                      ...f, 
-                      selectedSaleItemId: selectedSaleItem.id,
-                      inventoryId: selectedSaleItem.inventory.id,
-                      customerName: selectedSaleItem.sale.customerName || ""
-                    }));
-                  } else {
-                    setForm((f) => ({ ...f, selectedSaleItemId: "", inventoryId: "", customerName: "" }));
-                  }
-                }
-              }}
-              className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary-500 text-sm"
-            >
-              <option value="">Select a product...</option>
-              {products.map((p: any) => {
-                if (isPurchase) {
-                  return <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>;
-                } else {
-                  const customer = p.sale.customerName ? `Sold to: ${p.sale.customerName}` : 'Unknown Customer';
-                  const date = new Date(p.sale.createdAt).toLocaleDateString();
-                  return <option key={p.id} value={p.id}>{p.inventory.name} ({customer} on {date})</option>;
-                }
-              })}
-            </select>
+
+            {isPurchase ? (
+              /* Purchase tab — simple inventory picker */
+              <select
+                required
+                value={form.inventoryId}
+                onChange={(e) => setForm((f) => ({ ...f, inventoryId: e.target.value }))}
+                className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary-500 text-sm"
+              >
+                <option value="">Select a purchased product...</option>
+                {purchaseProducts.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} — {p.sku}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              /* Sales tab — saleItem picker, customer auto-fills */
+              <>
+                <select
+                  required
+                  value={form.selectedSaleItemId}
+                  onChange={(e) => handleSaleProductSelect(e.target.value)}
+                  className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 text-sm"
+                >
+                  <option value="">Select a sold product...</option>
+                  {saleProducts.map((p) => {
+                    const customer = p.sale.customerName ? p.sale.customerName : "Unknown Customer";
+                    const date = new Date(p.sale.createdAt).toLocaleDateString();
+                    return (
+                      <option key={p.id} value={p.id}>
+                        {p.inventory.name} ({p.inventory.sku}) — {customer} on {date}
+                      </option>
+                    );
+                  })}
+                </select>
+                {form.customerName && (
+                  <p className="mt-1.5 text-xs text-emerald-700 font-medium">
+                    ✓ Customer auto-filled: <span className="font-bold">{form.customerName}</span>
+                  </p>
+                )}
+              </>
+            )}
           </div>
 
           {/* Serial Number */}
@@ -354,16 +392,19 @@ export default function WarrantiesPage() {
             </div>
           )}
 
-          {/* Customer Name (Sale only) */}
+          {/* Customer Name (Sale only) — editable but pre-filled from sale */}
           {!isPurchase && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Customer Name (optional)</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Customer Name
+                <span className="ml-1 text-xs font-normal text-slate-400">(auto-filled from sale)</span>
+              </label>
               <input
                 type="text"
-                placeholder="e.g. Juan dela Cruz"
+                placeholder="Select a sale above to auto-fill"
                 value={form.customerName}
                 onChange={(e) => setForm((f) => ({ ...f, customerName: e.target.value }))}
-                className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary-500 text-sm"
+                className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 text-sm"
               />
             </div>
           )}
@@ -394,4 +435,3 @@ export default function WarrantiesPage() {
     </div>
   );
 }
-
