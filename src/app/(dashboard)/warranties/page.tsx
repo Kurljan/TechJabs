@@ -126,7 +126,9 @@ export default function WarrantiesPage() {
     }
     setSubmitting(true);
     try {
-      const result = await addWarranty({ ...form, warrantyType: activeTab });
+      // Strip UI-only field before sending to server action
+      const { selectedSaleItemId, ...warrantyData } = form;
+      const result = await addWarranty({ ...warrantyData, warrantyType: activeTab });
       if (result?.error) {
         setToast({ message: result.error, type: "error" });
       } else {
